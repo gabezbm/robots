@@ -1,18 +1,20 @@
 import pygame
 from pygame import Surface
 
+
 class Size:
     def __init__(self, width: int, height: int):
         self.width = width
         self.height = height
         self.length = min(width, height)
-    def get(self) -> tuple[int, int]:
-        return (self.width, self.height)
+        self.sizeTuple = (self.width, self.height)
 
 class Position:
     def __init__(self, x: int, y: int):
         self.x = x
         self.y = y
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
     def get(self) -> tuple[int, int]:
         return (self.x, self.y)
 
@@ -29,16 +31,19 @@ COLORS = {
     "enemy": pygame.colordict.THECOLORS["firebrick"]
 }
 
-KEYS = {
-    "north": {pygame.K_UP, pygame.K_w},
-    "south": {pygame.K_DOWN, pygame.K_s},
-    "west": {pygame.K_LEFT, pygame.K_a},
-    "east": {pygame.K_RIGHT, pygame.K_d},
-    "north-west": {pygame.K_q},
-    "north-east": {pygame.K_e},
-    "south-west": {pygame.K_z},
-    "south-east": {pygame.K_x}
+ACTION_KEYS = {
+    "N": {pygame.K_UP, pygame.K_w, pygame.K_k},
+    "S": {pygame.K_DOWN, pygame.K_s, pygame.K_j},
+    "W": {pygame.K_LEFT, pygame.K_a, pygame.K_h},
+    "E": {pygame.K_RIGHT, pygame.K_d, pygame.K_l},
+    "NW": {pygame.K_q, pygame.K_y},
+    "NE": {pygame.K_e, pygame.K_u},
+    "SW": {pygame.K_z, pygame.K_b},
+    "SE": {pygame.K_x, pygame.K_n}
 }
+VALID_ACTIONS: set[str] = set(ACTION_KEYS.keys())
+
+ENEMY_NUMBER = 10
 
 
 def isOdd(x: int) -> bool:
@@ -63,10 +68,11 @@ class Robots:
         self.pos = Position(x, y)
         self.color = COLORS["default"]
         self.radius = TILE_SIZE.length * 0.8 / 2
-    def move(self, direction: str) -> None:
+    def move(self, action: str) -> None:
+        assert action in VALID_ACTIONS, f"move action \"{action}\" is invalid"
         deltaX, deltaY = 0, 0
-        for d in direction:
-            match d:
+        for a in action:
+            match a:
                 case "N":
                     deltaY -= 1
                 case "S":
@@ -85,3 +91,23 @@ class Player(Robots):
     def __init__(self, surface: Surface, x: int, y: int):
         super(Player, self).__init__(surface, x, y)
         self.color = COLORS["player"]
+
+class Enemy(Robots):
+    def __init__(self, surface: Surface, x: int, y: int):
+        super(Enemy, self).__init__(surface, x, y)
+        self.color = COLORS["enemy"]
+    def chase(self, player: Player) -> str:
+        """
+        return a move string given player's position
+        if overlap with player, return ""
+        """
+        action = ""
+        if player.pos.y > self.pos.y:
+            action += "S"
+        elif player.pos.y < self.pos.y:
+            action += "N"
+        if player.pos.x > self.pos.x:
+            action += "E"
+        elif player.pos.x < self.pos.x:
+            action += "W"
+        return action
