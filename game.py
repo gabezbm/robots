@@ -1,9 +1,9 @@
 from utils import *
-import random
 
 
 class Game:
     def __init__(self):
+        print("\nGame started.\n" + "-" * 30)
         pygame.init()
         pygame.display.set_caption(TITLE)
         self.surface = pygame.display.set_mode(WINDOW_SIZE.sizeTuple)
@@ -14,12 +14,10 @@ class Game:
             MAP_SIZE.height // 2
         )
         self.enemies: list[Enemy] = []
-        for _ in range(ENEMY_NUMBER):
-            self.enemies.append(Enemy(
-                self.surface,
-                random.randint(1, MAP_SIZE.width),
-                random.randint(1, MAP_SIZE.height)
-            ))
+        self.explosions: list[Explosion] = []
+        validGrids = [(x + 1, y + 1) for x in range(MAP_SIZE.width) for y in range(MAP_SIZE.height) if Position(x + 1, y + 1) != self.player.pos]
+        for x, y in random.sample(validGrids, k=ENEMY_NUMBER):
+            self.enemies.append(Enemy(self.surface, x, y))
         self.score = 0
 
     def updateScore(self) -> None:
@@ -47,6 +45,8 @@ class Game:
                         if event.key in ACTION_KEYS[action]:
                             self.player.move(action)
                             self.updateScore()
+                            if isOnObjects(self.player, self.explosions) != -1:
+                                self.running = False
                             self.moveEnemies()
                             break
 
@@ -56,6 +56,20 @@ class Game:
                 enemy.move(action)
             if enemy.pos == self.player.pos:
                 self.running = False
+        explodeIndices: set[int] = set()
+        for i, enemy in enumerate(self.enemies):
+            if isOnObjects(enemy, self.explosions) != -1:
+                explodeIndices.add(i)
+            else:
+                if (j := isOnObjects(enemy, self.enemies[i + 1:])) != -1:
+                    explodeIndices |= {i, j + i + 1}
+        for i in explodeIndices:
+            self.explosions.append(self.enemies[i].explode())
+        self.enemies = [enemy for i, enemy in enumerate(self.enemies) if i not in explodeIndices]
+        if len(self.enemies) == 0:
+            print("You win!")
+            self.running = False
+
 
     def main(self) -> None:
         while self.running:
@@ -65,8 +79,11 @@ class Game:
             self.player.draw()
             for enemy in self.enemies:
                 enemy.draw()
+            for explosion in self.explosions:
+                explosion.draw()
             self.movePlayer()
             # Todo: how to moveEnemies here rather than in movePlayer?
             # self.moveEnemies()
             pygame.display.update()
         pygame.quit()
+        print("\nQuiting Game:\n" + "-" * 30)
