@@ -2,6 +2,9 @@ import pygame
 from pygame import Surface
 import random
 
+import logging
+logging.basicConfig(level=logging.INFO)
+
 
 class Size:
     def __init__(self, width: int, height: int):
@@ -45,7 +48,7 @@ ACTION_KEYS = {
 }
 VALID_ACTIONS: set[str] = set(ACTION_KEYS.keys())
 
-ENEMY_NUMBER = 5
+ENEMY_NUMBER = 30
 
 
 def isOdd(x: int) -> bool:
@@ -94,7 +97,7 @@ class Robots(GridObject):
     def __init__(self, surface: Surface, x: int, y: int, color: tuple[int]):
         super(Robots, self).__init__(surface, x, y, color)
     def move(self, action: str) -> None:
-        assert action in VALID_ACTIONS, f"move action \"{action}\" is invalid"
+        assert action in VALID_ACTIONS, logging.error(f"move action \"{action}\" is invalid")
         deltaX, deltaY = 0, 0
         for a in action:
             match a:
@@ -113,7 +116,7 @@ class Robots(GridObject):
             self.teleport()
     def teleport(self):
         self.pos = Position(random.randint(1, MAP_SIZE.width), random.randint(1, MAP_SIZE.height))
-        print(f"Teleported to {self.pos}")
+        logging.info(f"Teleported to {self.pos}")
 
 class Player(Robots):
     def __init__(self, surface: Surface, x: int, y: int):
@@ -140,4 +143,4 @@ class Enemy(Robots):
     def explode(self) -> Explosion:
         return Explosion(self.surface, self.pos.x, self.pos.y)
     def __del__(self) -> None:
-        print(f"Enemy explode @ {self.pos})")
+        logging.info(f"Enemy explode @ {self.pos})")
